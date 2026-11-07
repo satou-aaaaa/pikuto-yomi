@@ -215,6 +215,7 @@ try {
   check("途中で閉じても続きから（同じ問題・まちがえた印のまま）", await p.locator(".ch.ng").count() === 1 && await p.evaluate(() => __gg.cur().i) === 0);
   await solve(p);
   check("正解すると ✓ の印・記号の説明と国土交通省の出典・★2（まちがい1回）", await p.locator(".ch.ok").count() === 1 && (await p.textContent(".verdict")).includes(n1) && await p.locator(".verdict .src a[href^='https://www.mlit.go.jp/']").count() === 1 && (await p.getAttribute(".verdict .stars", "aria-label")) === "星2つ");
+  check("正解のあとの「🔊 読む」は答えと見かたを読む（問題文の読み上げ指定を外す）", await p.locator(".verdict[data-a11y-say]").count() === 1 && await p.locator(".q[data-a11y-say]").count() === 0);
   await p.click("#next");
   // 2問目：ヒント
   await p.click("#hint");
@@ -274,6 +275,12 @@ try {
   check("記号帳の記号を押すと、なかまと国土交通省の出典が出る", await p.locator("#detail a[href^='https://www.mlit.go.jp/']").count() === 1);
   await p.click('button[data-c="s"]');
   check("記号帳の「なかまで練習」は、そのなかまの記号だけで5問", (await p.evaluate(() => __gg.load().runs.p.list)).every((t) => SYMS[+t.split("|")[1]].c === "s") && (await p.evaluate(() => __gg.load().runs.p.list)).length === 5);
+  {
+    // 記号が5つより少ないなかま（お店・観光は4つ）でも5問の練習になり、読み直しで消えない（2026-11-07 CodeRabbit）
+    const small = Object.keys(G.CATS).filter((c) => SYMS.filter((x) => x.c === c).length < 5);
+    const ok = await p.evaluate((cs) => cs.every((c) => { const list = __gg.catList(c); __gg.save((s) => { s.runs.p = { mode: "p", id: "cat" + c, date: __gg.todayKey(), list, res: [] }; }); const r = __gg.load().runs.p; return list.length === 5 && r && r.list.length === 5; }), small);
+    check("記号が5つより少ないなかまでも、なかまで練習が5問で始まる", small.length > 0 && ok, small.join(","));
+  }
   // とことん：まちがえても終わらない・降りるまで
   await p.click("#back"); await p.click("#go-e");
   const e0 = await p.evaluate(() => __gg.load().runs.e);

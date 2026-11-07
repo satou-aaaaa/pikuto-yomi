@@ -50,7 +50,7 @@ button.sub,a.sub{all:unset;box-sizing:border-box;cursor:pointer;display:flex;ali
 button.sub:disabled,button.main:disabled{opacity:.45;cursor:default}
 .row{display:flex;gap:10px}.row>.sub,.row>.main{flex:1 1 0}
 .note{color:var(--ink2);font-size:.85rem;line-height:1.7;margin:0;text-align:center}
-.note a,.about a,.verdict a{color:var(--shu2);display:inline-flex;align-items:center;min-height:44px}
+.note a,.about a,.verdict a,.detail a{color:var(--shu2);display:inline-flex;align-items:center;min-height:44px}
 .big{font-weight:900;font-size:1.45rem;text-align:center;margin:0;line-height:1.35}
 .title{font-weight:900;font-size:2.1rem;letter-spacing:.14em;text-align:center;margin:6px 0 0;color:var(--ai2)}
 .title span{color:var(--shu)}
@@ -62,7 +62,7 @@ button.sub:disabled,button.main:disabled{opacity:.45;cursor:default}
 /* 辞書の頁 */
 .pad{position:relative;background:var(--paper);background-image:repeating-linear-gradient(transparent 0 1.9rem,var(--rule) 1.9rem calc(1.9rem + 1px));border:2px solid var(--line);border-left:8px solid var(--shu);border-radius:6px 16px 16px 6px;padding:1rem .9rem 1.1rem;box-shadow:0 6px 16px #1f2a441c}
 .q{margin:0 0 .6rem;font-weight:700;font-size:1rem;text-align:center}
-/* 記号：このゲームのために描いたピクトグラム（色のある記号も、丸・三角・四角の形でちがいが分かる） */
+/* 記号：このゲームのために描いたピクトグラム（丸と斜線・三角・丸は形でも分かる。赤い四角の火事の道具と緑の四角の安全は形が同じなので、中の絵と答えのあとの文で分ける） */
 .sym{display:inline-grid;place-items:center;color:var(--ink)}
 .sym svg{fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;width:100%;height:100%}
 .sym svg .F{fill:currentColor;stroke:none}
@@ -403,8 +403,9 @@ function practiceList(kind, s) {
 }
 // 記号帳から：そのなかまの記号で（記号よみ・記号さがしを交互に）
 function catList(c) {
+  // なかまの記号が5つより少ないとき（お店・観光は4つ）は、足りない分をなかまの色の問題で埋めて5問にする
   const r = rid(), ws = shuf(G.SYMS.filter((x) => x.c === c).map((x) => x.i)).slice(0, 5);
-  return ws.map((w, j) => `${j % 2 ? "b1" : "g0"}|${w}|${r}`);
+  return Array.from({ length: 5 }, (_, j) => `${j < ws.length ? (j % 2 ? "b1" : "g0") : "g2"}|${ws[j % ws.length]}|${r}`);
 }
 const starsOf = (m) => (m === 0 ? 3 : m === 1 ? 2 : 1); // m = まちがい＋ヒントの数
 const starStr = (s) => `<span class="stars" aria-label="星${s}つ">${"★".repeat(s)}<span class="off">${"☆".repeat(3 - s)}</span></span>`;
@@ -697,7 +698,9 @@ function solved() {
   document.querySelectorAll(".ch").forEach((b) => { b.disabled = true; if (P.opts[+b.dataset.j] === P.ans) b.classList.add("ok"); });
   if ($("hint")) $("hint").disabled = true;
   $("hintbox").innerHTML = ""; $("msg").className = "msg"; $("msg").textContent = "";
-  $("after").innerHTML = `<div class="verdict" role="status">
+  // 正解のあとの「🔊 読む」は、問題でなく答えと見かたを読む
+  const q0 = document.querySelector(".q[data-a11y-say]"); if (q0) q0.removeAttribute("data-a11y-say");
+  $("after").innerHTML = `<div class="verdict" role="status" data-a11y-say>
     <div class="hd">✓ 正解！ ${starStr(st)}</div>
     <p class="wd">${symPlain(x)}<span>${esc(x.n)}</span></p>
     <p class="why"><b>なかま：</b>${esc(x.k)}（${esc(x.kc)}）</p>
