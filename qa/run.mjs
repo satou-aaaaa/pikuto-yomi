@@ -276,10 +276,11 @@ try {
   await p.click('button[data-c="s"]');
   check("記号帳の「なかまで練習」は、そのなかまの記号だけで5問", (await p.evaluate(() => __gg.load().runs.p.list)).every((t) => SYMS[+t.split("|")[1]].c === "s") && (await p.evaluate(() => __gg.load().runs.p.list)).length === 5);
   {
-    // 記号が5つより少ないなかま（お店・観光は4つ）でも5問の練習になり、読み直しで消えない（2026-11-07 CodeRabbit）
-    const small = Object.keys(G.CATS).filter((c) => SYMS.filter((x) => x.c === c).length < 5);
+    // どのなかまでも（お店・観光のように記号が5つより少なくても）5問の練習になり、読み直しで消えない（2026-11-07 CodeRabbit）
+    // 記号を足して小さいなかまが無くなっても落ちないよう、全部のなかまで見る
+    const small = Object.keys(G.CATS);
     const ok = await p.evaluate((cs) => cs.every((c) => { const list = __gg.catList(c); __gg.save((s) => { s.runs.p = { mode: "p", id: "cat" + c, date: __gg.todayKey(), list, res: [] }; }); const r = __gg.load().runs.p; return list.length === 5 && r && r.list.length === 5; }), small);
-    check("記号が5つより少ないなかまでも、なかまで練習が5問で始まる", small.length > 0 && ok, small.join(","));
+    check("どのなかまでも（記号が5つより少なくても）、なかまで練習が5問で始まる", ok, small.join(","));
   }
   // とことん：まちがえても終わらない・降りるまで
   await p.click("#back"); await p.click("#go-e");
