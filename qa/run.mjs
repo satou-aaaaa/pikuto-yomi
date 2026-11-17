@@ -468,6 +468,51 @@ try {
   }
 } catch (e) { check("ブラウザでの検査が最後まで動く", false, e.stack.split("\n").slice(0, 3).join(" ")); }
 
+// 直した不具合がもどっていないか（保存できないときの帯・知らせ・ヒント・とことん・ホームの題）
+try {
+  { // 知らせ（.toast）は下のボタンを押すじゃまをしない
+    const pt = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    await pt.goto(url);
+    check("知らせ（.toast）の pointer-events が none（出ているあいだも下のボタンを押せる）", (await pt.evaluate(() => { const d = document.createElement("div"); d.className = "toast"; d.textContent = "x"; document.body.appendChild(d); const v = getComputedStyle(d).pointerEvents; d.remove(); return v; })) === "none");
+    await pt.close(); }
+  { // ヒント2で消した選び肢は、あとで残りのまちがいを選んでも戻らない
+    const q = await newPage(); await closeHow(q); await q.click("#go-e");
+    const lw = await q.evaluate(() => { const c = __gg.cur(), w = c.P.opts.filter((o) => o !== c.P.ans); return c.P.opts.indexOf(w[w.length - 1]); });
+    await q.click("#hint"); await q.click("#hint");
+    const cut0 = await q.evaluate(() => [...document.querySelectorAll(".ch.ng")].map((b) => b.dataset.j));
+    await q.click(`.ch[data-j="${lw}"]`);
+    const st = await q.evaluate((cut0) => ({ live: [...document.querySelectorAll(".ch:not([disabled])")].map((b) => +b.dataset.j), back: cut0.filter((j) => !document.querySelector(`.ch[data-j="${j}"]`).classList.contains("ng")).length, ans: __gg.cur().P.opts.indexOf(__gg.cur().P.ans) }), cut0);
+    check("ヒント2のあとに残ったまちがいを選ぶと、正解だけが残り、消した選び肢は戻らない", cut0.length >= 1 && st.back === 0 && st.live.length === 1 && st.live[0] === st.ans, JSON.stringify({ cut0, st }));
+    await q.close(); }
+  { // とことんで正解した直後（次へを押す前）でも「ここで降りる」で終えられ、その1問が数に入る
+    const q = await newPage(); await closeHow(q); await q.click("#go-e");
+    await solve(q);
+    const lab = (await q.textContent("#quit")) || "";
+    await q.click("#quit"); await q.waitForTimeout(150);
+    check("とことんで1問正解した直後に「ここで降りる」を押すと結果の画面になり、正解した1問が数に入る", lab.includes("1問で終える") && (await q.locator("#eres").count()) === 1 && (await q.textContent("#eres")).includes("1問"), lab + " / " + ((await q.locator("#eres").count()) ? await q.textContent("#eres") : "結果なし"));
+    await q.close(); }
+  { // ホームの題（h1.title）が縦に伸びない（h1{flex:1} を受け継がない）
+    for (const [w, h] of [[390, 844], [820, 1180]]) {
+      const c = await browser.newContext({ viewport: { width: w, height: h } });
+      const q = await newPage(w, c); await q.setViewportSize({ width: w, height: h }); await closeHow(q); await q.waitForTimeout(100);
+      const t = await q.evaluate(() => { const e = document.querySelector("h1.title"); return e ? [e.getBoundingClientRect().height, parseFloat(getComputedStyle(e).fontSize)] : [0, 0]; });
+      check(`${w}×${h} で、ホームの h1.title の高さが字の高さの2倍を超えない`, t[1] > 0 && t[0] <= t[1] * 2, t.join(" / "));
+      await c.close(); }
+  }
+  { // 保存に失敗したら帯 #savewarn で知らせ続け、保存できたら消す（黙って記録が消えないように）
+    const pw = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    pw.on("pageerror", (e) => errors.push(e.message));
+    await pw.addInitScript(() => { window.__origSetItem = Storage.prototype.setItem; Storage.prototype.setItem = () => { throw new Error("blocked"); }; });
+    await pw.goto(url); await pw.click("#howto-ok"); await pw.waitForTimeout(2000);
+    check("保存できないときは、帯 #savewarn がちょうど1つ出て、2秒たっても残る", (await pw.locator("#savewarn").count()) === 1, await pw.locator("#savewarn").count());
+    await pw.evaluate(() => { Storage.prototype.setItem = window.__origSetItem; });
+    await pw.click("#f-how"); await pw.click("#howto-ok");
+    check("保存できるようになって次に保存すると、帯 #savewarn が消える", (await pw.locator("#savewarn").count()) === 0);
+    await pw.close(); }
+} catch (e) {
+  check("直した不具合の検査が最後まで動く", false, e.message.split("\n")[0]);
+}
+
 // 引き継ぎコード（shared-workflows template/qa/transfer-check.mjs）
 try {
   const sample = { "pikuto-v1": JSON.stringify({ v: 1, tut: true, days: { "2026-11-07": { m: [0, 1, 0, 0, 2], k: ["g0|1", "g0|2", "b1|3", "b1|4", "g2|5"] } }, hdays: {}, adays: {}, dex: { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 }, runs: {}, kofi: {}, ach: {}, ebest: 7, t: 1 }), "pikuto-fs": "2" };
