@@ -71,7 +71,7 @@ button.sub:disabled,button.main:disabled{opacity:.45;cursor:default}
 .ja{font-weight:900;font-size:1.6rem;text-align:center;margin:.1rem 0 .4rem;color:var(--ai2)}
 .tip{background:var(--paper);border:2px dashed var(--gold);border-radius:14px;padding:.6rem .9rem;font-size:.9rem;line-height:1.7;text-align:left}
 .tip b{color:var(--shu2)}
-/* 選び肢 */
+/* 選択肢 */
 .choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .ch{all:unset;box-sizing:border-box;cursor:pointer;position:relative;min-height:4.2rem;display:flex;align-items:center;justify-content:center;border-radius:14px;background:var(--paper);border:3px solid var(--ai);box-shadow:0 4px 0 #24427a55;font-weight:900;font-size:1.05rem;color:var(--ink);padding:1.1rem .5rem .6rem;text-align:center;line-height:1.35}
 .ch:active{transform:translateY(3px);box-shadow:0 2px 0 #24427a55}
@@ -643,8 +643,8 @@ function play() {
   const showTip = (run.mode === "d" || run.mode === "a") && i === 0, tip = tipOf(run.date);
   // 「🔊 読む」用の文：問いと、記号の形（名前は言わない）と、選び肢を読む
   const say = P.kind === "b1"
-    ? `この名前の記号はどれ？ ${x.n}。選び肢：${P.opts.map((v, j) => `${j + 1}つ目、${G.SYMS[v].alt}`).join("。")}`
-    : `${P.kind === "g2" ? "この色と形は、何を伝える？" : "この記号は、何を表す？"} 記号の形：${x.alt}。選び肢：${P.opts.map((v) => (P.kind === "g2" ? G.SYMS[v].k : G.SYMS[v].n)).join("、")}`;
+    ? `この名前の記号はどれ？ ${x.n}。選択肢：${P.opts.map((v, j) => `${j + 1}つ目、${G.SYMS[v].alt}`).join("。")}`
+    : `${P.kind === "g2" ? "この色と形は、何を伝える？" : "この記号は、何を表す？"} 記号の形：${x.alt}。選択肢：${P.opts.map((v) => (P.kind === "g2" ? G.SYMS[v].k : G.SYMS[v].n)).join("、")}`;
   const body = P.kind === "b1"
     ? `<p class="q" data-a11y-say aria-label="${esc(say)}">この名前の記号はどれ？</p><p class="ja">${esc(x.n)}</p>`
     : P.kind === "g2"
@@ -678,7 +678,7 @@ function paint() {
   const cut = cutOf(), P = cur.P;
   document.querySelectorAll(".ch").forEach((b) => { const v = P.opts[+b.dataset.j], ng = cur.wrong.includes(v) || cut.includes(v); b.classList.toggle("ng", ng); b.disabled = ng || cur.done; b.setAttribute("aria-label", optLabel(P, v) + (ng ? "（ちがう）" : "")); });
   const h = $("hint"); if (h) h.disabled = cur.done || cur.hints >= 2;
-  $("hintbox").innerHTML = cur.hints && !cur.done ? `<div class="hint" role="status">💡 ${esc(P.look)}${cur.hints >= 2 ? "<br>💡 ちがう選び肢を消しました。" : ""}</div>` : "";
+  $("hintbox").innerHTML = cur.hints && !cur.done ? `<div class="hint" role="status">💡 ${esc(P.look)}${cur.hints >= 2 ? "<br>💡 ちがう選択肢を消しました。" : ""}</div>` : "";
 }
 function hint() { if (cur.done || cur.hints >= 2) return; cur.hints++; keep(); paint(); }
 function wrongAt(v, msg) {
