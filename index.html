@@ -427,7 +427,7 @@ html.a11y-say body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!i
   //   until …… その所が画面に出たら次へ進む（答えた・正解した など）。無ければ sel を押したら次へ
   //   button …… 押すと次へ進むボタンの字（読むだけの吹き出し）
   //   pos   …… "below"（既定）か "above"。その側に場所が無ければ、ページを少し動かして場所を空ける（読む所を隠さないため）
-  // 吹き出しは押す所を隠さない（上か下の空いたほうに出す）。「案内をとじる」と Esc でいつでもやめられる。
+  // 吹き出しは押す所を隠さない（上か下の空いたほうに出す）。「案内を閉じる」と Esc でいつでもやめられる。
   const coach = (() => {
     let steps = null, i = 0, opt = {}, box = null, tgt = null, mo = null, raf = 0, shown = -1;
     function css() {
@@ -448,7 +448,7 @@ html.a11y-say body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!i
     function build() {
       box = doc.createElement("div");
       box.id = "core-coach"; box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "false"); box.setAttribute("aria-label", "はじめての案内");
-      box.innerHTML = '<p id="core-coach-t"></p><div class="core-coach-row"><span class="core-coach-n" aria-hidden="true"></span><button type="button" class="core-coach-skip">案内をとじる</button><button type="button" class="core-coach-go" hidden></button></div>';
+      box.innerHTML = '<p id="core-coach-t"></p><div class="core-coach-row"><span class="core-coach-n" aria-hidden="true"></span><button type="button" class="core-coach-skip">案内を閉じる</button><button type="button" class="core-coach-go" hidden></button></div>';
       box.querySelector(".core-coach-skip").onclick = () => stop(false);
       box.querySelector(".core-coach-go").onclick = () => advance();
       (doc.body || doc.documentElement).appendChild(box);
