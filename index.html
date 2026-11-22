@@ -885,8 +885,8 @@ function firstPlay() {
   play();
   const seen = (q) => { const e = document.querySelector(q); return !!e && e.getBoundingClientRect().height > 0; };
   FIRST_STEPS[0].sel = ["#choices","#app h1","#app header","#app"].find(seen) || "#app";
-  // 案内を閉じた（Esc も）ら、1問の練習の途中経過を残さずにホームへ（ふだんの練習の「続きから」を出さない）
-  Core.coach.start(FIRST_STEPS, { home, onEnd: (done) => { if (done === false) { save((s) => { const r = s.runs && s.runs.p; if (r && !(r.res || []).length) delete s.runs.p; }); home(); } } });
+  // 案内を閉じた（Esc も）ら、1問の練習の途中経過を残さずにホームのいちばん上へ（ふだんの練習の「続きから」を出さない）
+  Core.coach.start(FIRST_STEPS, { home, onEnd: (done) => { if (done === false) { save((s) => { const r = s.runs && s.runs.p; if (r && !(r.res || []).length) delete s.runs.p; }); home(); scrollTo(0, 0); } } });
 }
 // first-play:end
 function startRun(mode, opt) {
