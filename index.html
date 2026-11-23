@@ -615,7 +615,7 @@ html.a11y-say body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!i
     // 使い方: 画面を描く関数の最初で Core.screens.mark("dex")（ホームは mark("")）。起動時に一度
     //         Core.screens.route({ dex: book, cal: () => cal(), ach: achView }, home)。
     // 履歴はいつも [ホーム] か [ホーム, #画面] の2つまで（画面から画面へは置き換え、ホームへは戻す）。開き直すとホームから。
-    const views = {};
+    const views = new Map(); // Map にする（# から来た名前で Object の関数を呼ばない。CodeQL js/unvalidated-dynamic-method-call）
     let homeFn = null, pushed = false, skipPop = 0, quiet = false;
     const hashName = () => { try { return decodeURIComponent((location.hash || "").slice(1)); } catch (e) { return ""; } };
     const bare = () => location.pathname + location.search;
@@ -639,14 +639,16 @@ html.a11y-say body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!i
       if (skipPop) { skipPop--; return; }
       if (foreign()) return;
       const h = hashName();
-      const fn = (h && views[h]) || homeFn;
-      if (!h || !views[h]) pushed = false;
+      const own = !!h && views.has(h);
+      if (!own) pushed = false;
+      // CodeQL js/unvalidated-dynamic-method-call：# から選んだものは has で確かめ、関数かどうかも見てから呼ぶ
+      const fn = own ? views.get(h) : homeFn;
       quiet = true;
-      try { if (fn) fn(); } finally { quiet = false; }
+      try { if (typeof fn === "function") fn(); } finally { quiet = false; }
     }
     function route(map, home) {
       if (all().length) return;
-      Object.assign(views, map || {});
+      for (const k of Object.keys(map || {})) if (typeof map[k] === "function") views.set(k, map[k]);
       // 何度呼んでもよい（ゲームの home() の最初で呼ぶ）。# を消すのは最初の1回だけ（開き直したらホームから。途中の回は続きから出る）
       if (!homeFn) { addEventListener("popstate", onPop); if (hashName() && !foreign()) try { history.replaceState(null, "", bare()); } catch (e) { /* 使えない */ } }
       homeFn = home;
