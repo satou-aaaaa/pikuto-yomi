@@ -350,7 +350,7 @@ html.a11y-say body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!i
 // ゲームの共通部品 game-core。ひな形: satou-aaaaa/shared-workflows の template/core/core.js。
 // ゲームでは直さない。index.html の core:begin〜core:end の印のあいだに node scripts/sync-template.mjs <ゲームのフォルダ> で写す
 // （ファイルを足さないので sw.js の SHELL は変えない）。ゲームからは window.Core で使う。
-// 共通部品の版: 4
+// 共通部品の版: 5
 //   1: 2026-11-21 ゲームごとに手で写していた小さな関数を1か所に集めた。40本で同じ役目の関数が何通りにも分かれ
 //      （お知らせの帯 11通り・振動 10通り・文字を安全にする esc 4通り・数の読み込み num 2通り）、
 //      「動きを減らす」でも振動する・お知らせが読み上げられない・num の直し（#410）が22本に届かない・esc が " を変えない、が起きていた
@@ -364,6 +364,10 @@ html.a11y-say body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!i
 //      URL の #（例 #kiroku）で画面を分けて止める（routines/ui-rules.md U10〜U12。NN/g「Progressive Disclosure」・Android「Layouts and navigation patterns」）。
 //      <section data-screen="home">〜 を置いたページだけで動く（置いていないゲームでは何もしない）
 //      JS で描き替えるゲームは、画面の関数の最初で Core.screens.mark("dex")、起動時に Core.screens.route({...}, home) で「戻る」がホームへ戻る
+//   5: 2026-11-27 全ゲームで同じ場所（ページのいちばん上の右）に「？ 遊び方」を置く（Core.help）。止まるような不具合が起きたら
+//      ページの上に帯を出し、本人が「知らせる」を押したときだけ感想フォームが開く（Core.errBar）。エラーの文は保存も自動送信もしない
+//      （satou さん 2026-11-27「個人データ・個人情報をとらない」。外のサーバーへ自動で送ると IP が必ず届くため、自動の通知と集計は作らない）。
+//      MDN「Window: error event」「unhandledrejection event」・NN/g「Error-Message Guidelines」（何が起きたか・どうすればよいかを書く）
 // 決まり: 外へ通信しない。ゲームの関数の名前（toast・buzz など）は上書きしない（Core.toast などで呼ぶ）。
 (function () {
   "use strict";
@@ -719,7 +723,75 @@ html.a11y-say body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!i
     }, true);
   }
 
-  window.Core = { v: 4, calm, esc, num, jstNow, today, addDays, prevDay, nextDay, md, dayNo, ymOf, ymAdd, untilNext, streak, say, toast, buzz, saveWarn, coach, feedbackUrl, feedbackInfo, bindFeedback, screens };
+  // ---- 遊び方の「？」（全ゲームで同じ場所：ページのいちばん上の右。NN/g「Help and Documentation」：いつでも同じ所から開ける）----
+  // ページの上に 52px の場所を空けて置く（浮かせないので、押せる所を隠さない。routines/ui-rules.md U1）。
+  // 押すと、ゲームの openHow()（無ければフッターの #f-how、それも無ければ dialog#howto）を開く。遊び方の無いページには出さない。
+  function helpOpen() {
+    try {
+      if (typeof window.openHow === "function") { window.openHow(); return true; }
+      const d = doc.getElementById("howto");
+      if (d && d.tagName === "DIALOG") { if (!d.open) { if (d.showModal) d.showModal(); else d.setAttribute("open", ""); } return true; }
+      const f = doc.getElementById("f-how");
+      if (f) { f.click(); return true; }
+    } catch (e) { setTimeout(() => { throw e; }); }
+    return false;
+  }
+  const helpHas = () => typeof window.openHow === "function" || !!doc.getElementById("howto") || !!doc.getElementById("f-how");
+  function help() {
+    if (doc.getElementById("core-help") || !doc.body || !helpHas()) return;
+    if (!doc.getElementById("core-help-css")) {
+      const s = doc.createElement("style");
+      s.id = "core-help-css";
+      s.textContent = "html.core-helpon{padding-top:52px}"
+        + "#core-help{position:absolute;top:4px;right:max(8px,env(safe-area-inset-right,0px));z-index:50;display:inline-flex;align-items:center;gap:4px;min-height:44px;min-width:44px;padding:0 12px;border-radius:22px;border:2px solid #1d2320;background:#fff;color:#1d2320;font:700 15px/1 system-ui,sans-serif;cursor:pointer}"
+        + "#core-help b{font-size:18px}"
+        + "html.a11y-dark #core-help{background:#22282a;color:#eceae4;border-color:#eceae4}"
+        + "#core-err{margin:0;padding:8px 12px;background:#fff3cd;color:#000;border-bottom:2px solid #8a6d00;font:500 15px/1.5 system-ui,sans-serif}"
+        + "#core-err p{margin:0 0 6px}#core-err .core-err-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}"
+        + "#core-err a,#core-err button{display:inline-flex;align-items:center;min-height:44px;min-width:44px;padding:0 14px;border-radius:10px;border:2px solid #000;background:#fff;color:#000;font:700 15px/1 system-ui,sans-serif;text-decoration:none;cursor:pointer}";
+      (doc.head || doc.documentElement).appendChild(s);
+    }
+    const b = doc.createElement("button");
+    b.type = "button"; b.id = "core-help"; b.setAttribute("aria-label", "遊び方");
+    b.innerHTML = "<b aria-hidden=\"true\">？</b><span aria-hidden=\"true\">遊び方</span>";
+    b.addEventListener("click", helpOpen);
+    doc.body.appendChild(b);
+    doc.documentElement.classList.add("core-helpon");
+  }
+
+  // ---- 止まるような不具合の帯（本人が押したときだけ知らせる）----
+  // このページの script のエラーだけを拾う（拡張機能・別のサイトの script の「Script error.」は数えない）。1回開くごとに1度だけ出す。
+  // 帯は流れの中に置く（浮かせない）。「知らせる」で感想フォーム（不具合）を開く。付属情報は送る前に本人が見て消せる。何も自動では送らない
+  let errShown = false;
+  function mine(e) {
+    if (!e) return false;
+    if (e.type === "unhandledrejection") return true;
+    if (!e.message || /^Script error\.?$/i.test(e.message)) return false;
+    if (/ResizeObserver loop/i.test(e.message)) return false; // 画面の描き直しの知らせで、動きは止まらない
+    const f = e.filename || "";
+    try { return !f || new URL(f, location.href).origin === location.origin; } catch (x) { return false; }
+  }
+  function errBar() {
+    if (errShown || !doc.body) return;
+    errShown = true;
+    const d = doc.createElement("div");
+    d.id = "core-err"; d.setAttribute("role", "alert");
+    d.innerHTML = "<p>うまく動かない所がありました。ページを開き直すと直ることがあります。</p>"
+      + "<div class=\"core-err-row\"><a data-feedback=\"bug\" target=\"_blank\" rel=\"noopener\">不具合を知らせる</a><button type=\"button\">閉じる</button></div>";
+    const a = d.querySelector("a");
+    a.href = feedbackUrl({ kind: "bug" });
+    a.addEventListener("click", () => { a.href = feedbackUrl({ kind: "bug" }); });
+    d.querySelector("button").addEventListener("click", () => d.remove());
+    doc.body.prepend(d);
+  }
+  try {
+    addEventListener("error", (e) => { if (e instanceof ErrorEvent && mine(e)) setTimeout(errBar, 0); });
+    addEventListener("unhandledrejection", (e) => { if (mine(e)) setTimeout(errBar, 0); });
+  } catch (e) { /* 古いブラウザ */ }
+  // ゲームが遊び方の窓を後から作ることがあるので、読み終えてから置く
+  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", () => setTimeout(help, 0)); else setTimeout(help, 0);
+
+  window.Core = { v: 5, calm, esc, num, jstNow, today, addDays, prevDay, nextDay, md, dayNo, ymOf, ymAdd, untilNext, streak, say, toast, buzz, saveWarn, coach, feedbackUrl, feedbackInfo, bindFeedback, screens, help: helpOpen, errBar };
 })();
 </script>
 <!-- core:end -->
@@ -926,9 +998,9 @@ function nextAch(s) {
 }
 
 // ---- 画面の部品 ----
-function toast(t) { const d = document.createElement("div"); d.className = "toast"; d.setAttribute("role", "status"); d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2000); }
-const buzz = (n = 12) => { try { if (!(window.A11y && A11y.on("calm"))) navigator.vibrate && navigator.vibrate(n); } catch (e) {} };
-const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+function toast(t) { Core.toast(t); } // 知らせの帯（共通部品 game-core。読み上げにも届け、重ねて出さない）
+const buzz = Core.buzz; // 共通部品 game-core（「動きを減らす」では震わせない）
+const esc = Core.esc; // 共通部品 game-core（" と ' も変える。属性の中でも切れない）
 const toTop = () => window.scrollTo(0, 0);
 // 記号の絵（読み上げでは形の説明を言う。名前は言わない）
 const symHtml = (x, cls = "sym") => `<span class="${cls}" role="img" aria-label="記号：${esc(x.alt)}"><svg viewBox="0 0 40 40" aria-hidden="true" focusable="false">${x.svg}</svg></span>`;
@@ -1179,7 +1251,7 @@ function endFinish(run) {
 // 共有の文：記号と答えは出さない。まちがい＋ヒントの数で色と形を変える（色だけで分けない）
 const sq = (m) => (m === 0 ? "🟢" : m === 1 ? "🔶" : "🔺");
 function shareText(mode, k, rec) { return `ピクトグラムよみ${mode === "h" ? " 上級" : ""} 第${dayNo(k)}回 ${md(k)}\n${rec.m.map(sq).join("")}${rec.m.every((m) => m === 0) ? " まちがいなし" : ""}`; }
-function untilNext() { const n = jstNow(), ms = 864e5 - (n.getTime() % 864e5); return `${Math.floor(ms / 36e5)}時間${Math.floor((ms % 36e5) / 6e4)}分`; }
+function untilNext() { return Core.untilNext(); } // 次の回までの時間（共通部品 game-core）
 function result(mode, k, first, prec, newAch = []) {
   Core.screens.mark("result"); // 「戻る」でホームへ（sync-template の migrateBack）
   const s = load(), rec = mode === "p" ? prec : bookOf(s, mode)[k];
