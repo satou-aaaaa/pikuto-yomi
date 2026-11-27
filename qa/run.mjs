@@ -111,6 +111,8 @@ const optsKey = (P) => P.opts.join("/");
 
 // ---- 2. ファイルの中身 ----
 const html = readFileSync(path.join(root, "index.html"), "utf8"), gen = readFileSync(path.join(root, "gen.js"), "utf8"), data = readFileSync(path.join(root, "data.js"), "utf8");
+// ひな形の写し（<!-- 名前:begin〜end -->）はゲームの言葉ではないので外し、Core.kofi・Core.KOFI は写す前の形にもどして見る（shared-workflows の sync-template が足した）
+const gameOwn = (t) => t.replace(/<!-- ([a-z0-9-]+):begin[\s\S]*?<!-- \1:end -->/g, "").split("${Core.KOFI}").join("https://ko-fi.com/satouaaaaa").replace(/Core\.kofi\(("(?:[^"\\]|\\.)*"), ("(?:[^"\\]|\\.)*")\)/g, (m, a, b) => "`<p class=\"note kofi\">" + JSON.parse(a) + "、<a href=\"https://ko-fi.com/satouaaaaa\" target=\"_blank\" rel=\"noopener\">Ko-fi でコーヒー1杯の応援</a>をもらえると、" + JSON.parse(b) + "の励みになります（任意・遊ぶのはずっと無料）。</p>`");
 const ext = [...html.matchAll(/(?:src|href)="(https?:[^"]+)"/g)].map((m) => m[1]).filter((u) => !/^https:\/\/fonts\.googleapis\.com(\/|$)|^https:\/\/ko-fi\.com\/satouaaaaa$|^https:\/\/(doi\.org|www\.mlit\.go\.jp)\//.test(u));
 check("外から読むのは文字（Google Fonts）だけ。スクリプト・広告・解析を入れない（出典のリンクは押したときに開くだけ）", ext.length === 0 && ![...html.matchAll(/<script[^>]+src="([^"]+)"/g)].some((m) => /^https?:/.test(m[1])), ext.join(","));
 check("CSP で通信先を自分だけにしている", /connect-src 'self'/.test(html) && !/connect-src[^;"]*https/.test(html));
@@ -119,7 +121,7 @@ check("乱数は sort の比較の中で引かない（ブラウザで引く回�
 check("一行の式の途中にコメント // を足さない（行の残りが消える。rosen-hitofude 2026-11-04）", !/;\s*\/\/[^\n]*;\s*\w/.test((gen + data).split("\n").filter((l) => !l.trim().startsWith("//")).join("\n")));
 check("画面にお笑いの言葉を入れない（本物っぽく）", !/お笑い|ギャグ|ツッコミ|なんでやねん|（うそ）/.test(html + data));
 check("記号の出典（国土交通省の一覧・JIS Z 8210・JIS Z 9103）を「このゲームについて」と答えのあと・記号帳に出す", /mlit\.go\.jp/.test(html) && /出典：国土交通省/.test(html) && /JIS Z 9103/.test(html) && /このゲームのために描いた/.test(html));
-check("好きなだけ遊べる：チケット・回数制限・🔒で開くモードを入れない", !/🎫|チケット|🔒|すると開く|のあとで開く/.test(html));
+check("好きなだけ遊べる：チケット・回数制限・🔒で開くモードを入れない", !/🎫|チケット|🔒|すると開く|のあとで開く/.test(gameOwn(html)));
 check("引き継ぎ：transfer.js をゲームの script より前に、このゲームの記録のキーだけで読む", /<script src="transfer\.js" data-game="pikuto-yomi" data-keys="pikuto-v1,pikuto-fs"><\/script>\s*<\/head>/.test(html) && html.indexOf('src="transfer.js"') < html.indexOf('src="data.js"') && /data-hk/.test(html) && existsSync(path.join(root, "transfer.js")));
 { const og = (k) => (html.match(new RegExp(`<meta (?:property|name)="${k}" content="([^"]+)"`)) || [])[1] || "";
   const png = readFileSync(path.join(root, "og.png"));
