@@ -403,7 +403,10 @@ try {
     const q = await newPage(390, ctx); await closeHow(q);
     const d = await q.evaluate(() => __gg.lateDays(__gg.load())[0]);
     if (d) {
-      await q.click("#go-cal"); await q.click(`.cal .miss[data-k="${d}"]`);
+      await q.click("#go-cal");
+      // 時計を3日進めると月が変わることがある（月末の3日）。その日が前の月なら、前の月を開いてから押す（incidents/2026-11-28-qa-cal-month-end.md）
+      if (d.slice(0, 7) !== new Date(later + 9 * 3600e3).toISOString().slice(0, 7)) await q.click("#prev");
+      await q.click(`.cal .miss[data-k="${d}"]`);
       await ctx.clock.setFixedTime(later + 9 * 864e5);
       const c = await curOf(q);
       await q.click(`.ch[data-j="${c.opts.indexOf(c.ans)}"]`);
