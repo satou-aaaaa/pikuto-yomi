@@ -436,7 +436,7 @@ try {
     const bad = [], small = [];
     for (const [w, fs] of [[320, 3], [390, 2], [320, 1]]) {
       const q = await newPage(w); await closeHow(q);
-      await q.evaluate((fs) => localStorage.setItem("pikuto-fs", String(fs)), fs); await q.reload(); await q.waitForTimeout(150);
+      await q.evaluate((fs) => (localStorage.setItem("pikuto-fs", String(fs)), localStorage.setItem("a11y-v1", JSON.stringify({ ...JSON.parse(localStorage.getItem("a11y-v1") || "{}"), fs: undefined }))), fs); await q.reload(); await q.waitForTimeout(150);
       for (const go of [null, "#go-d", "solve", "solve2", "solve3", "#go-cal", "#go-dex", "#go-ach", "#go-e"]) {
         if (go && go.startsWith("solve")) { if (go !== "solve") await q.click("#next"); await solve(q); }
         else if (go) { await q.goto(url); await q.waitForTimeout(100); await q.click(go); }
